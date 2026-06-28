@@ -26,6 +26,60 @@ export interface AgentDiscoveryResult {
 	projectAgentsDir: string | null;
 }
 
+interface AgentOverride {
+	model?: string;
+	tools?: string[];
+}
+
+interface PlanConfig {
+	agents?: Record<string, AgentOverride>;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+	return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function readPlanConfig(filePath: string): PlanConfig {
+	if (!fs.existsSync(filePath)) return {};
+	try {
+		const parsed = JSON.parse(fs.readFileSync(filePath, "utf8")) as unknown;
+		if (!isRecord(parsed) || !isRecord(parsed.agents)) return {};
+
+		const agents: Record<string, AgentOverride> = {};
+		for (const [name, override] of Object.entries(parsed.agents)) {
+			if (!isRecord(override)) continue;
+			const model = typeof override.model === "string" && override.model.trim() ? override.model.trim() : undefined;
+			const tools = Array.isArray(override.tools) ? override.tools.filter((tool): tool is string => typeof tool === "string") : undefined;
+			agents[name] = { model, tools };
+		}
+		return { agents };
+	} catch {
+		return {};
+	}
+}
+
+function mergePlanConfigs(base: PlanConfig, override: PlanConfig): PlanConfig {
+	return { agents: { ...(base.agents ?? {}), ...(override.agents ?? {}) } };
+}
+
+function getPlanConfig(cwd: string): PlanConfig {
+	const userConfig = readPlanConfig(path.join(getAgentDir(), "pi-plan.json"));
+	const projectConfig = readPlanConfig(path.join(cwd, CONFIG_DIR_NAME, "pi-plan.json"));
+	return mergePlanConfigs(userConfig, projectConfig);
+}
+
+function applyPlanConfig(agents: AgentConfig[], config: PlanConfig): AgentConfig[] {
+	return agents.map((agent) => {
+		const override = config.agents?.[agent.name];
+		if (!override) return agent;
+		return {
+			...agent,
+			model: override.model ?? agent.model,
+			tools: override.tools && override.tools.length > 0 ? override.tools : agent.tools,
+		};
+	});
+}
+
 function loadAgentsFromDir(dir: string, source: AgentSource): AgentConfig[] {
 	const agents: AgentConfig[] = [];
 
@@ -117,7 +171,8 @@ export function discoverAgents(cwd: string, scope: AgentScope): AgentDiscoveryRe
 	for (const agent of userAgents) agentMap.set(agent.name, agent);
 	for (const agent of projectAgents) agentMap.set(agent.name, agent);
 
-	return { agents: Array.from(agentMap.values()), packageAgentsDir, projectAgentsDir };
+	const agents = applyPlanConfig(Array.from(agentMap.values()), getPlanConfig(cwd));
+	return { agents, packageAgentsDir, projectAgentsDir };
 }
 
 export function formatAgentList(agents: AgentConfig[], maxItems: number): { text: string; remaining: number } {

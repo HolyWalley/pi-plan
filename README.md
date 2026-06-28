@@ -66,4 +66,29 @@ Default bundled agents:
 - `worker`
 - `reviewer`
 
+Bundled agent prompts intentionally do not pin user-specific models. Configure models locally in:
+
+```text
+~/.pi/agent/pi-plan.json
+```
+
+Example:
+
+```json
+{
+  "agents": {
+    "scout": { "model": "openai/gpt-5.5:low" },
+    "worker": { "model": "openai/gpt-5.5:medium" },
+    "reviewer": { "model": "openai/gpt-5.5:high" },
+    "planner": { "model": "openai/gpt-5.5:xhigh" }
+  }
+}
+```
+
+Projects can override this with:
+
+```text
+.pi/pi-plan.json
+```
+
 Plans remain project-local even though the extension is installed globally.
