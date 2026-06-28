@@ -779,8 +779,8 @@ export default function planExtension(pi: ExtensionAPI): void {
 
 			const taskPrompt = buildTaskPrompt(plan, task, agent, modelPreset);
 			const subagentHint = isSubagentAvailable(pi)
-				? `Call the subagent tool with { agent: "${agent}", task: <task prompt>, agentScope: "package", confirmProjectAgents: false }. Bundled pi-plan agent definitions encode the default model/thinking presets. Requested model preset: "${modelPreset}".`
-				: "The subagent tool is not loaded; execute this task directly or ask the user how to proceed.";
+				? `Call the subagent tool with { agent: "${agent}", task: <task prompt> }. Model and thinking are controlled by pi-subagents agentOverrides in Pi settings. Requested plan preset: "${modelPreset}".`
+				: "The subagent tool is not loaded; install npm:pi-subagents, execute this task directly, or ask the user how to proceed.";
 			return {
 				content: [
 					{

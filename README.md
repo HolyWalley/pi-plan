@@ -20,7 +20,6 @@ Tools:
 - `plan_get_status`
 - `plan_start_task`
 - `plan_record_task_result`
-- `subagent`
 
 Plan artifacts are stored per project under:
 
@@ -30,67 +29,66 @@ Plan artifacts are stored per project under:
 
 The extension prompts to add `.pi/plans/` to the project `.gitignore`.
 
+## Requirements
+
+- `revdiff` available on PATH for plan review
+- [`pi-subagents`](https://pi.dev/packages/pi-subagents?name=subagents) installed for delegated execution:
+
+```bash
+pi install npm:pi-subagents
+```
+
+- Optional but recommended: [`@gotgenes/pi-permission-system`](https://github.com/gotgenes/pi-packages/tree/main/packages/pi-permission-system). `pi-subagents` integrates with it so child permission prompts can be forwarded to the parent Pi UI.
+
 ## Install globally
 
-From this directory:
+```bash
+pi install git:git@github.com:HolyWalley/pi-plan.git
+```
+
+For local development from this directory:
 
 ```bash
 pi install /Users/yakau/Projects/pi-plan
 ```
 
-Or after pushing to a git remote:
+Do not install both the local path and git package at the same time; their tools will conflict.
 
-```bash
-pi install git:git@github.com:<user>/pi-plan
-```
+## Subagent model config
 
-## Requirements
+`pi-plan` delegates execution to `pi-subagents`. Configure subagent models in Pi settings, not in this repo.
 
-- `revdiff` available on PATH for plan review
-- Pi project trust enabled for projects where you want `.pi/plans/` state
-
-## Subagents
-
-Bundled agents live in `agents/` and are used by the `subagent` tool with:
-
-```json
-{
-  "agentScope": "package"
-}
-```
-
-Default bundled agents:
-
-- `scout`
-- `planner`
-- `worker`
-- `reviewer`
-
-Bundled agent prompts intentionally do not pin user-specific models. Configure models locally in:
+User-global config:
 
 ```text
-~/.pi/agent/pi-plan.json
+~/.pi/agent/settings.json
+```
+
+Project config:
+
+```text
+.pi/settings.json
 ```
 
 Example:
 
 ```json
 {
-  "agents": {
-    "scout": { "model": "openai/gpt-5.5:low" },
-    "worker": { "model": "openai/gpt-5.5:medium" },
-    "reviewer": { "model": "openai/gpt-5.5:high" },
-    "planner": { "model": "openai/gpt-5.5:xhigh" }
+  "subagents": {
+    "agentOverrides": {
+      "scout": { "model": "openai/gpt-5.5", "thinking": "low" },
+      "worker": { "model": "openai/gpt-5.5", "thinking": "medium" },
+      "reviewer": { "model": "openai/gpt-5.5", "thinking": "high" },
+      "planner": { "model": "openai/gpt-5.5", "thinking": "xhigh" }
+    }
   }
 }
 ```
 
-Projects can override this with:
+Run this inside Pi to inspect the live mapping:
 
 ```text
-.pi/pi-plan.json
+/subagents-models
 ```
-
-Subagent child Pi processes run with `--no-extensions` by default. This keeps child agents isolated from global interactive permission/approval extensions that cannot prompt in JSON mode.
 
 Plans remain project-local even though the extension is installed globally.
