@@ -91,4 +91,6 @@ Projects can override this with:
 .pi/pi-plan.json
 ```
 
+Subagent child Pi processes run with `--no-extensions` by default. This keeps child agents isolated from global interactive permission/approval extensions that cannot prompt in JSON mode.
+
 Plans remain project-local even though the extension is installed globally.
